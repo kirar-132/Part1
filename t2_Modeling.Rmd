@@ -1,0 +1,101 @@
+---
+title: "t2_Modeling"
+author: "Chemin Bae"
+date: '2019 10 18 '
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+### Import the dataset
+
+```{r}
+sdata_t2=read.csv(file="Startup_Try2.csv",header=TRUE, as.is=T)
+sdata_t2[sdata_t2=="No Info"]=NA
+sdata_t2[sdata_t2==""]=NA
+```
+
+
+### Remove variables which have more than 50% of missing value (NA)
+
+```{r}
+mis_val=sapply(sdata_t2,function(x)sum(is.na(x)))
+percent_mis=as.data.frame(round((mis_val/nrow(sdata_t2))*100,1))
+name=row.names(percent_mis)
+pcnt_mis_var=cbind(name,percent_mis)
+row.names(pcnt_mis_var)=NULL
+colnames(pcnt_mis_var)=c("variable","Percent.Missing")
+percent_mis
+```
+
+```{r}
+str(sdata_t2)
+```
+### Cleaning the variables
+
+convert chr variables to factor or integer variables
+
+```{r}
+sdata_t2$Dependent.Company.Status[sdata_t2$Dependent.Company.Status=="Failed"]<-0
+sdata_t2$Dependent.Company.Status[sdata_t2$Dependent.Company.Status=="Success"]<-1
+sdata_t2$Dependent.Company.Status<-as.factor(sdata_t2$Dependent.Company.Status)
+
+sdata_t2$Age.of.company.in.years<-as.integer(sdata_t2$Age.of.company.in.years)
+
+sdata_t2$Number.of.Investors.in.Seed<-as.integer(sdata_t2$Number.of.Investors.in.Seed)
+
+sdata_t2$Number.of.of.repeat.investors<-as.integer(sdata_t2$Number.of.of.repeat.investors)
+
+sdata_t2$Focus.on.consumer.data.[sdata_t2$Focus.on.consumer.data.=="No"]<-0
+sdata_t2$Focus.on.consumer.data.[sdata_t2$Focus.on.consumer.data.=="Yes"]<-1
+sdata_t2$Focus.on.consumer.data.<-as.factor(sdata_t2$Focus.on.consumer.data.)
+
+sdata_t2$Machine.Learning.based.business[sdata_t2$Machine.Learning.based.business=="No"]<-0
+sdata_t2$Machine.Learning.based.business[sdata_t2$Machine.Learning.based.business=="Yes"]<-1
+sdata_t2$Machine.Learning.based.business<-as.factor(sdata_t2$Machine.Learning.based.business)
+
+sdata_t2$Predictive.Analytics.business[sdata_t2$Predictive.Analytics.business=="No"]<-0
+sdata_t2$Predictive.Analytics.business[sdata_t2$Predictive.Analytics.business=="Yes"]<-1
+sdata_t2$Predictive.Analytics.business<-as.factor(sdata_t2$Predictive.Analytics.business)
+
+sdata_t2$Online.or.offline.venture...physical.location.based.business.or.online.venture.[sdata_t2$Online.or.offline.venture...physical.location.based.business.or.online.venture.=="Offline"]<-0
+sdata_t2$Online.or.offline.venture...physical.location.based.business.or.online.venture.[sdata_t2$Online.or.offline.venture...physical.location.based.business.or.online.venture.=="Online"]<-1
+sdata_t2$Online.or.offline.venture...physical.location.based.business.or.online.venture.<-as.factor(sdata_t2$Online.or.offline.venture...physical.location.based.business.or.online.venture.)
+
+sdata_t2$Solutions.offered[sdata_t2$Solutions.offered=="No"]<-0
+sdata_t2$Solutions.offered[sdata_t2$Solutions.offered=="Yes"]<-1
+sdata_t2$Solutions.offered<-as.factor(sdata_t2$Solutions.offered)
+
+sdata_t2$Number.of.Direct.competitors<-as.integer(sdata_t2$Number.of.Direct.competitors)
+
+sdata_t2$Avg.time.to.investment...average.across.all.rounds..measured.from.previous.investment<-as.integer(sdata_t2$Avg.time.to.investment...average.across.all.rounds..measured.from.previous.investment)
+
+sdata_t2$Renown.score<-as.integer(sdata_t2$Renown.score)
+```
+
+### Make Logistic model
+
+```{r}
+train=sdata_t2[1:236, ]
+test=sdata_t2[237:471, ]
+t2=glm(Dependent.Company.Status ~ Age.of.company.in.years + Internet.Activity.Score + Employee.Count + Last.Funding.Amount + Number.of.Investors.in.Seed + Number.of.of.repeat.investors + Focus.on.consumer.data. + Machine.Learning.based.business + Predictive.Analytics.business + Online.or.offline.venture...physical.location.based.business.or.online.venture. + Solutions.offered + Number.of.Direct.competitors + Avg.time.to.investment...average.across.all.rounds..measured.from.previous.investment + Renown.score, data=train, family=binomial(link="logit"))
+summary(t2)
+```
+
+* According to the regression, as the startup company focus on consumer data, the possibility of success become higher. : Its p-value is the lowest.
+* As the startup company's internet activity score is high, the possibility of success become high. : Its p-value is lower than 0.05, so this variable is reasonable.
+* As the startup company do the business based on machine learning, the possilbity of success "can be" higher. : Its p-value is slightly higher than 0.05., but still this variable is reasonable than other variables.
+
+### Draw ROC(Receiver Operating Characteristic) Curve to assess this Logistic Regression Model
+
+```{r}
+library(gplots)
+library(ROCR)
+p=predict(t2, newdata=test, type="response") #To draw ROC curve that applied "test"dataset. (The model is made with "train" dataset.)
+pr=prediction(p, test$Dependent.Company.Status)
+prf=performance(pr,measure="tpr",x.measure="fpr")
+plot(prf)
+```
