@@ -1,0 +1,68 @@
+### Import the dataset
+
+```{r}
+sdata=read.csv(file="CAX_Startup_Data_Fixed.csv",header=TRUE, as.is=T)
+sdata[sdata=="No Info"]=NA
+sdata[sdata==""]=NA
+sdata
+```
+
+
+### Remove variables which have more than 50% of missing value (NA)
+
+```{r}
+mis_val=sapply(sdata,function(x)sum(is.na(x)))
+percent_mis=as.data.frame(round((mis_val/nrow(sdata))*100,1))
+name=row.names(percent_mis)
+pcnt_mis_var=cbind(name,percent_mis)
+row.names(pcnt_mis_var)=NULL
+colnames(pcnt_mis_var)=c("variable","Percent.Missing")
+percent_mis
+```
+ : "Employees.count.MoM.change" variable's <NA> percentage is 43.3%. It's too high percentage than other variables. So I'll remove this variable from the dataset.
+
+### Arrange the dataset
+
+```{r}
+#keeping only variables with less than 40% missing
+sdata$Employees.count.MoM.change=NULL
+str(sdata)
+```
+
+### Cleaning the variables
+convert chr variables to factor or integer variables
+```{r}
+#I tried to make all of them clear, but.. I failed.. as you can see..
+sdata$Dependent.Company.Status[sdata$Dependent.Company.Status=="Failed"]<-0
+sdata$Dependent.Company.Status[sdata$Dependent.Company.Status=="Success"]<-1
+sdata$Dependent.Company.Status<-as.factor(sdata$Dependent.Company.Status)
+
+sdata$Age.of.company.in.years<-as.integer(sdata$Age.of.company.in.years)
+
+sdata$Has.the.team.size.grown[sdata$Has.the.team.size.grown=="No"]<-0
+sdata$Has.the.team.size.grown[sdata$Has.the.team.size.grown=="Yes"]<-1
+sdata$Has.the.team.size.grown<-as.factor(sdata$Has.the.team.size.grown)
+
+sdata$Number.of.Investors.in.Seed<-as.integer(sdata$Number.of.Investors.in.Seed)
+
+sdata$Number.of.Investors.in.Angel.and.or.VC<-as.integer(sdata$Number.of.Investors.in.Angel.and.or.VC)
+
+sdata$Team.size.all.employees<-as.integer(sdata$Team.size.all.employees)
+
+sdata$Number.of.of.repeat.investors<-as.integer(sdata$Number.of.of.repeat.investors)
+
+sdata$Focus.on.consumer.data.[sdata$Focus.on.consumer.data.=="No"]<-0
+sdata$Focus.on.consumer.data.[sdata$Focus.on.consumer.data.=="Yes"]<-1
+sdata$Focus.on.consumer.data.<-as.factor(sdata$Focus.on.consumer.data.)
+```
+
+### Make Logistic model
+
+```{r}
+#So, I just tried to do the logistic regression with the variables that I made clean at last step.
+glm_sdata=glm(Dependent.Company.Status ~ Age.of.company.in.years + Internet.Activity.Score + Employee.Count + Has.the.team.size.grown + Last.Funding.Amount + Number.of.Investors.in.Seed + Number.of.Investors.in.Angel.and.or.VC + Number.of.Co.founders + Number.of.of.advisors + Team.size.Senior.leadership + Team.size.all.employees + Number.of.of.repeat.investors + Focus.on.consumer.data. + Focus.on.structured.or.unstructured.data , data=sdata, family=binomial(link="logit"))
+summary(glm_sdata)
+```
+
+* According to the p-value, "Age of company in years", "Internet Activity Score" is strongly meaningful.
+* According to the Estimate, we can understand like "If Internet Activity Score is high, the possilbity of succes become high" and "If Age of company in years become higher, the possibility of success become lower(?)"
