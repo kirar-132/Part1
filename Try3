@@ -1,0 +1,182 @@
+
+### Import the dataset
+
+```{r}
+sdata_t2=read.csv(file="Startup_Try2.csv",header=TRUE, as.is=T)
+sdata_t2[sdata_t2=="No Info"]=NA
+sdata_t2[sdata_t2==""]=NA
+```
+
+
+### Remove variables which have more than 50% of missing value (NA)
+
+```{r}
+mis_val=sapply(sdata_t2,function(x)sum(is.na(x)))
+percent_mis=as.data.frame(round((mis_val/nrow(sdata_t2))*100,1))
+name=row.names(percent_mis)
+pcnt_mis_var=cbind(name,percent_mis)
+row.names(pcnt_mis_var)=NULL
+colnames(pcnt_mis_var)=c("variable","Percent.Missing")
+percent_mis
+```
+
+```{r}
+str(sdata_t2)
+```
+### Cleaning the variables
+
+convert chr variables to factor or integer variables
+
+```{r}
+sdata_t2$Dependent.Company.Status[sdata_t2$Dependent.Company.Status=="Failed"]<-0
+sdata_t2$Dependent.Company.Status[sdata_t2$Dependent.Company.Status=="Success"]<-1
+sdata_t2$Dependent.Company.Status<-as.numeric(sdata_t2$Dependent.Company.Status)
+
+sdata_t2$Age.of.company.in.years<-as.integer(sdata_t2$Age.of.company.in.years)
+
+sdata_t2$Number.of.Investors.in.Seed<-as.integer(sdata_t2$Number.of.Investors.in.Seed)
+
+sdata_t2$Number.of.of.repeat.investors<-as.numeric(sdata_t2$Number.of.of.repeat.investors)
+
+sdata_t2$Number.of.Direct.competitors<-as.integer(sdata_t2$Number.of.Direct.competitors)
+
+sdata_t2$Avg.time.to.investment...average.across.all.rounds..measured.from.previous.investment<-as.numeric(sdata_t2$Avg.time.to.investment...average.across.all.rounds..measured.from.previous.investment)
+
+sdata_t2$Renown.score<-as.numeric(sdata_t2$Renown.score)
+```
+
+### Make Logistic model
+
+```{r}
+train=sdata_t2[1:236, ]
+test=sdata_t2[237:471, ]
+t2=glm(Dependent.Company.Status ~ Age.of.company.in.years + Internet.Activity.Score + Employee.Count + Last.Funding.Amount + Number.of.Investors.in.Seed + Number.of.of.repeat.investors + Focus.on.consumer.data. + Machine.Learning.based.business + Predictive.Analytics.business + Online.or.offline.venture...physical.location.based.business.or.online.venture. + Solutions.offered + Number.of.Direct.competitors + Avg.time.to.investment...average.across.all.rounds..measured.from.previous.investment + Renown.score, data=sdata_t2, family=binomial(link="logit")) #I wanted to use 'data=train', but if I put this, its result is.. terrible..(still I don't know why..)
+summary(t2)
+```
+
+* According to the regression, as the startup company focus on consumer data, the possibility of success become higher. : Its p-value is the lowest.
+* As the startup company's internet activity score is high, the possibility of success become high. : Its p-value is lower than 0.05, so this variable is reasonable.
+* As the startup company do the business based on machine learning, the possilbity of success "can be" higher. : Its p-value is slightly higher than 0.05., but still this variable is reasonable than other variables.
+
+### Draw ROC(Receiver Operating Characteristic) Curve to assess this Logistic Regression Model
+
+```{r}
+library(gplots)
+library(ROCR)
+p=predict(t2, newdata=test, type="response") #To draw ROC curve that applied "test"dataset. (The model is made with "train" dataset.)
+pr=prediction(p, test$Dependent.Company.Status)
+prf=performance(pr,measure="tpr",x.measure="fpr")
+plot(prf)
+```
+
+```{r}
+auc1=performance(pr, measure="auc")
+auc1=auc1@y.values[[1]]
+auc1
+```
+
+* Its AUC is 0.67. - It means this model is poor. (As AUC is near at 1, that model is excellent.)
+
+### Make another model -1
+
+Remove some variables which are not significant, according to the summary of last model.
+
+```{r}
+train=sdata_t2[1:236, ]
+test=sdata_t2[237:471, ]
+t3=glm(Dependent.Company.Status ~ Internet.Activity.Score + Employee.Count + Last.Funding.Amount + Number.of.Investors.in.Seed + Focus.on.consumer.data. + Machine.Learning.based.business + Predictive.Analytics.business + Renown.score, data=sdata_t2, family=binomial(link="logit")) #I wanted to use 'data=train', but if I put this, its result is.. terrible..(still I don't know why..)
+summary(t3)
+```
+
+```{r}
+library(gplots)
+library(ROCR)
+p1=predict(t3, newdata=test, type="response")
+pr1=prediction(p1, test$Dependent.Company.Status)
+prf1=performance(pr1,measure="tpr",x.measure="fpr")
+plot(prf1)
+```
+
+```{r}
+auc2=performance(pr1, measure="auc")
+auc2=auc2@y.values[[1]]
+auc2
+```
+
+* Become poorer than the first model.
+
+### Make another model -2
+
+```{r}
+train=sdata_t2[1:236, ]
+test=sdata_t2[237:471, ]
+t4=glm(Dependent.Company.Status ~ Internet.Activity.Score + Employee.Count + Last.Funding.Amount + Focus.on.consumer.data. + Machine.Learning.based.business, data=sdata_t2, family=binomial(link="logit"))
+summary(t4)
+```
+
+```{r}
+library(gplots)
+library(ROCR)
+p2=predict(t4, newdata=test, type="response")
+pr2=prediction(p2, test$Dependent.Company.Status)
+prf2=performance(pr2,measure="tpr",x.measure="fpr")
+plot(prf2)
+```
+
+```{r}
+auc3=performance(pr2, measure="auc")
+auc3=auc3@y.values[[1]]
+auc3
+```
+
+* Become much more poorer - almost failed.
+
+### Make another model -3
+
+In this time, let's fix some variables.
+
+```{r}
+sdata_t2$Dependent.Company.Status[sdata_t2$Dependent.Company.Status=="Failed"]<-0
+sdata_t2$Dependent.Company.Status[sdata_t2$Dependent.Company.Status=="Success"]<-1
+sdata_t2$Dependent.Company.Status<-as.numeric(sdata_t2$Dependent.Company.Status)
+
+sdata_t2$Age.of.company.in.years<-as.integer(sdata_t2$Age.of.company.in.years)
+
+sdata_t2$Number.of.Investors.in.Seed<-as.integer(sdata_t2$Number.of.Investors.in.Seed)
+
+sdata_t2$Number.of.of.repeat.investors<-as.numeric(sdata_t2$Number.of.of.repeat.investors)
+
+sdata_t2$Number.of.Direct.competitors<-as.integer(sdata_t2$Number.of.Direct.competitors)
+
+sdata_t2$Avg.time.to.investment...average.across.all.rounds..measured.from.previous.investment<-as.numeric(sdata_t2$Avg.time.to.investment...average.across.all.rounds..measured.from.previous.investment)
+
+sdata_t2$Renown.score<-as.numeric(sdata_t2$Renown.score)
+
+sdata_t2$Solutions.offered[sdata_t2$Solutions.offered=="N0"]<-1
+sdata_t2$Solutions.offered[sdata_t2$Solutions.offered=="Yes"]<-0
+sdata_t2$Solutions.offered<-as.factor(sdata_t2$Solutions.offered)
+```
+
+```{r}
+train=sdata_t2[1:236, ]
+test=sdata_t2[237:471, ]
+t5=glm(Dependent.Company.Status ~ Internet.Activity.Score + Employee.Count + Last.Funding.Amount + Focus.on.consumer.data. + Machine.Learning.based.business + Solutions.offered, data=sdata_t2, family=binomial(link="logit"))
+summary(t5)
+```
+
+```{r}
+library(gplots)
+library(ROCR)
+p3=predict(t5, newdata=test, type="response")
+pr3=prediction(p3, test$Dependent.Company.Status)
+prf3=performance(pr3,measure="tpr",x.measure="fpr")
+plot(prf3)
+```
+
+```{r}
+auc4=performance(pr3, measure="auc")
+auc4=auc4@y.values[[1]]
+auc4
+```
+
+* Become better, but still poorer than the first model.
