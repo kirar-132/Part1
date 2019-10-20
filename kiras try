@@ -1,0 +1,310 @@
+# importing train and test data
+train<- read.csv(file="CAX_Startup_Train.csv", header=TRUE,as.is=T)
+test<- read.csv(file="CAX_Startup_Test.csv", header=TRUE,as.is=T)
+train$Category<-c("Train")
+test$Category<-c("Test")
+
+# the train data and test data are combined in a whole data set called train_test. the test data is added below the training data
+train_test<-rbind(train,test)
+# rbind führt Vektoren zu Matrizen zusammen. r steht für rows/Zeilen. Vektoren werden mit rbind zeilenweise untereinander angeordnet
+
+# (hat nicht funktioniert) recoding ordinal variables
+#library(plyr)
+#(hat nicht funktioniert) train_test$employee_count_code<-as.numeric(revalue(train_test$Founders_previous_company_employee_count, c("Small"=1, "Medium"=2, "Large"=3)))
+
+#(hat nicht funktioniert) as.numeric(revalue(train_test$Founders_previous_company_employee_count, c("Small"=1, "Medium"=2, "Large"=3)))
+
+# (hat nicht funktioniert) recoding with R built-in functions
+# train_test$employee_count_code[train_test$Founders_previous_company_employee_count== "Small"] <- 1
+# train_test$employee_count_code[train_test$Founders_previous_company_employee_count== "Medium"] <- 2
+# train_test$employee_count_code[train_test$Founders_previous_company_employee_count== "Large"] <- 3
+
+# (hat nicht funktioniert) library(car)
+# recode(train$Founders_previous_company_employee_count, recodes = "'Small'=1;'Medium'=2;'Large'=3", as.numeric = TRUE)
+
+# replace character data by numerical data. here: column Founders_previous_company_employee_count - small and medium replaced by 0, large replaced by 1. reason: we can combine small and medium because this facilitates the logistic regression
+
+train$Founders_previous_company_employee_count <- stringr::str_replace_all(train$Founders_previous_company_employee_count, pattern = "Small", replacement = "0")
+train$Founders_previous_company_employee_count <- stringr::str_replace_all(train$Founders_previous_company_employee_count, pattern = "Medium", replacement = "0")
+train$Founders_previous_company_employee_count <- stringr::str_replace_all(train$Founders_previous_company_employee_count, pattern = "Large", replacement = "1")
+
+# replace character data by numerical data. here: column company_raising_fund - yes replaced by 1, no replaced by 0
+
+train$Company_raising_fund <- stringr::str_replace_all(train$Company_raising_fund, pattern = "No", replacement = "0")
+train$Company_raising_fund <- stringr::str_replace_all(train$Company_raising_fund, pattern = "Yes", replacement = "1")
+
+# replace character data by numerical data. here: column Company_industry_count - single and few replaced by 0, many replaced by 1
+
+train$Company_Industry_count <- stringr::str_replace_all(train$Company_Industry_count, pattern = "single", replacement = "0")
+train$Company_Industry_count <- stringr::str_replace_all(train$Company_Industry_count, pattern = "Few", replacement = "0")
+train$Company_Industry_count <- stringr::str_replace_all(train$Company_Industry_count, pattern = "Many", replacement = "1")
+
+# copy column Company_Location for companies only located in USA. 
+train$Location_USA <- train$Company_Location
+# copy column Company_Location for companies only located in Europe. 
+train$Location_Europe <- train$Company_Location
+# rename column "Company_Location" to "Location_Others"
+train <- rename(train, replace = c("Company_Location" = "Location_Others"))
+
+# replace character data by numerical data. here: column Location_USA - USA replaced by 1, Europe and Others replaced by 0
+train$Location_USA <- stringr::str_replace_all(train$Location_USA, pattern = "USA", replacement = "1")
+train$Location_USA <- stringr::str_replace_all(train$Location_USA, pattern = "Europe", replacement = "0")
+train$Location_USA <- stringr::str_replace_all(train$Location_USA, pattern = "Other", replacement = "0")
+
+# replace character data by numerical data. here: column Location_Europe - Europe replaced by 1, USA and Others replaced by 0
+train$Location_Europe <- stringr::str_replace_all(train$Location_Europe, pattern = "USA", replacement = "0")
+train$Location_Europe <- stringr::str_replace_all(train$Location_Europe, pattern = "Other", replacement = "0")
+train$Location_Europe <- stringr::str_replace_all(train$Location_Europe, pattern = "Europe", replacement = "1")
+
+# replace character data by numerical data. here: column Location_Others - Others replaced by 1, Europe and USA replaced by 0
+train$Location_Others <- stringr::str_replace_all(train$Location_Others, pattern = "USA", replacement = "0")
+train$Location_Others <- stringr::str_replace_all(train$Location_Others, pattern = "Europe", replacement = "0")
+train$Location_Others <- stringr::str_replace_all(train$Location_Others, pattern = "Other", replacement = "1")
+
+# replace character data by numerical data. here: column Company.mobile.app - yes replaced by 1, no replaced by 0
+train$Company_mobile_app <- stringr::str_replace_all(train$Company_mobile_app, pattern = "No", replacement = "0")
+train$Company_mobile_app <- stringr::str_replace_all(train$Company_mobile_app, pattern = "Yes", replacement = "1")
+
+# rename column "Company_top_Angel_VC_funding" to "Fund_by_Investors_Group_or_Venture_Capital"
+train <- rename(train, replace = c("Company_top_Angel_VC_funding" = "Fund_by_Investors_Group_or_Venture_Capital"))
+
+# replace character data by numerical data. here: column Fund_by_Investors_Group_or_Venture_Capital - yes replaced by 1, no replaced by 0
+train$Fund_by_Investors_Group_or_Venture_Capital <- stringr::str_replace_all(train$Fund_by_Investors_Group_or_Venture_Capital, pattern = "No", replacement = "0")
+train$Fund_by_Investors_Group_or_Venture_Capital <- stringr::str_replace_all(train$Fund_by_Investors_Group_or_Venture_Capital, pattern = "Yes", replacement = "1")
+
+# replace character data by numerical data. here: column Founders_top_company_experience - yes replaced by 1, no replaced by 0
+train$Founders_top_company_experience <- stringr::str_replace_all(train$Founders_top_company_experience, pattern = "No", replacement = "0")
+train$Founders_top_company_experience <- stringr::str_replace_all(train$Founders_top_company_experience, pattern = "Yes", replacement = "1")
+
+# replace character data by numerical data. here: column Founders_startup_experience - yes replaced by 1, no replaced by 0
+train$Founders_startup_experience <- stringr::str_replace_all(train$Founders_startup_experience, pattern = "No", replacement = "0")
+train$Founders_startup_experience <- stringr::str_replace_all(train$Founders_startup_experience, pattern = "Yes", replacement = "1")
+
+# replace character data by numerical data. here: column Founders_big_5_experience - yes replaced by 1, no replaced by 0
+train$Founders_big_5_experience <- stringr::str_replace_all(train$Founders_big_5_experience, pattern = "No", replacement = "0")
+train$Founders_big_5_experience <- stringr::str_replace_all(train$Founders_big_5_experience, pattern = "Yes", replacement = "1")
+
+# copy column Company_business_model for companies with model B2B. 
+train$Model_B2B <- train$Company_business_model
+# copy column Company_business_model for companies with model B2C. 
+train$Model_B2C <- train$Company_business_model
+# rename column "Company_business_model" to "Model_both"
+train <- rename(train, replace = c("Company_business_model" = "Model_Both"))
+
+# replace character data by numerical data. here: column Model_B2B - B2B replaced by 1, both and B2C replaced by 0
+train$Model_B2B <- stringr::str_replace_all(train$Model_B2B, pattern = "B2B", replacement = "1")
+train$Model_B2B <- stringr::str_replace_all(train$Model_B2B, pattern = "B2C", replacement = "0")
+train$Model_B2B <- stringr::str_replace_all(train$Model_B2B, pattern = "Both", replacement = "0")
+
+# replace character data by numerical data. here: column Model_B2C - B2C replaced by 1, both and B2B replaced by 0
+train$Model_B2C <- stringr::str_replace_all(train$Model_B2C, pattern = "B2C", replacement = "1")
+train$Model_B2C <- stringr::str_replace_all(train$Model_B2C, pattern = "B2B", replacement = "0")
+train$Model_B2C <- stringr::str_replace_all(train$Model_B2C, pattern = "Both", replacement = "0")
+
+# replace character data by numerical data. here: column Model_both - Both replaced by 1, B2C and B2B replaced by 0
+train$Model_Both <- stringr::str_replace_all(train$Model_Both, pattern = "Both", replacement = "1")
+train$Model_Both <- stringr::str_replace_all(train$Model_Both, pattern = "B2B", replacement = "0")
+train$Model_Both <- stringr::str_replace_all(train$Model_B2C, pattern = "B2C", replacement = "0")
+
+# copy column Company_business_model for companies with model B2B. 
+train$Model_B2B <- train$Company_business_model
+# copy column Company_business_model for companies with model B2C. 
+train$Model_B2C <- train$Company_business_model
+# rename column "Company_business_model" to "Model_both"
+train <- rename(train, replace = c("Company_business_model" = "Model_Both"))
+
+# replace character data by numerical data. here: column Model_B2B - B2B replaced by 1, both and B2C replaced by 0
+train$Model_B2B <- stringr::str_replace_all(train$Model_B2B, pattern = "B2B", replacement = "1")
+train$Model_B2B <- stringr::str_replace_all(train$Model_B2B, pattern = "B2C", replacement = "0")
+train$Model_B2B <- stringr::str_replace_all(train$Model_B2B, pattern = "Both", replacement = "0")
+
+# replace character data by numerical data. here: column Model_B2C - B2C replaced by 1, both and B2B replaced by 0
+train$Model_B2C <- stringr::str_replace_all(train$Model_B2C, pattern = "B2C", replacement = "1")
+train$Model_B2C <- stringr::str_replace_all(train$Model_B2C, pattern = "B2B", replacement = "0")
+train$Model_B2C <- stringr::str_replace_all(train$Model_B2C, pattern = "Both", replacement = "0")
+
+# replace character data by numerical data. here: column Model_both - Both replaced by 1, B2C and B2B replaced by 0
+train$Model_Both <- stringr::str_replace_all(train$Model_Both, pattern = "Both", replacement = "1")
+train$Model_Both <- stringr::str_replace_all(train$Model_Both, pattern = "B2B", replacement = "0")
+train$Model_Both <- stringr::str_replace_all(train$Model_B2C, pattern = "B2C", replacement = "0")
+
+
+# replace character data by numerical data. here: column Founders_experience - high replaced by 1, low and medium replaced by 0
+train$Founders_experience <- stringr::str_replace_all(train$Founders_experience, pattern = "High", replacement = "1")
+train$Founders_experience <- stringr::str_replace_all(train$Founders_experience, pattern = "Low", replacement = "0")
+train$Founders_experience <- stringr::str_replace_all(train$Founders_experience, pattern = "Medium", replacement = "0")
+
+# replace character data by numerical data. here: column Founders_global_exposure - yes replaced by 1, no replaced by 0
+train$Founders_global_exposure <- stringr::str_replace_all(train$Founders_global_exposure, pattern = "Yes", replacement = "1")
+train$Founders_global_exposure <- stringr::str_replace_all(train$Founders_global_exposure, pattern = "No", replacement = "0")
+
+# replace character data by numerical data. here: column Founders_industry_exposure - high and medium replaced by 1, low replaced by 0. reason: low contact = Eintrittsbarriere für startup; medium/high contact = facilitates market entry
+train$Founders_Industry_exposure <- stringr::str_replace_all(train$Founders_Industry_exposure, pattern = "High", replacement = "1")
+train$Founders_Industry_exposure <- stringr::str_replace_all(train$Founders_Industry_exposure, pattern = "Medium", replacement = "1")
+train$Founders_Industry_exposure <- stringr::str_replace_all(train$Founders_Industry_exposure, pattern = "Low", replacement = "0")
+
+# replace character data by numerical data. here: column Founders_publications - many and few replaced by 1, none replaced by 0. reason: for writing an article/book, a structured way of thinking and an interesting idea are necessary - like for founding a startup
+train$Founders_publications <- stringr::str_replace_all(train$Founders_publications, pattern = "Many", replacement = "1")
+train$Founders_publications <- stringr::str_replace_all(train$Founders_publications, pattern = "Few", replacement = "1")
+train$Founders_publications <- stringr::str_replace_all(train$Founders_publications, pattern = "None", replacement = "0")
+
+# replace character data by numerical data. here: column Company_incubation_investor - yes replaced by 1, no replaced by 0.
+train$Company_incubation_investor <- stringr::str_replace_all(train$Company_incubation_investor, pattern = "Yes", replacement = "1")
+train$Company_incubation_investor <- stringr::str_replace_all(train$Company_incubation_investor, pattern = "No", replacement = "0")
+
+# replace character data by numerical data. here: column Company_crowdsourcing - yes replaced by 1, no replaced by 0.
+train$Company_crowdsourcing <- stringr::str_replace_all(train$Company_crowdsourcing, pattern = "Yes", replacement = "1")
+train$Company_crowdsourcing <- stringr::str_replace_all(train$Company_crowdsourcing, pattern = "No", replacement = "0")
+
+# replace character data by numerical data. here: column Company_crowdfunding - yes replaced by 1, no replaced by 0.
+train$Company_crowdfunding <- stringr::str_replace_all(train$Company_crowdfunding, pattern = "Yes", replacement = "1")
+train$Company_crowdfunding <- stringr::str_replace_all(train$Company_crowdfunding, pattern = "No", replacement = "0")
+
+# replace character data by numerical data. here: column Company_big_data - yes replaced by 1, no replaced by 0.
+train$Company_big_data <- stringr::str_replace_all(train$Company_big_data, pattern = "Yes", replacement = "1")
+train$Company_big_data <- stringr::str_replace_all(train$Company_big_data, pattern = "No", replacement = "0")
+
+
+# copy column Company_Product_or_service for companies with product. 
+train$Model_Product <- train$Company_Product_or_service
+# copy column Company_Product_or_service for companies with service. 
+train$Model_Service <- train$Company_Product_or_service
+# rename column "Company_Product_or_service" to "Company_both_product_and_service"
+train <- rename(train, replace = c("Company_Product_or_service" = "Company_both_product_and_service"))
+
+# replace character data by numerical data. here: column Model_Product - Product replaced by 1, both and service replaced by 0
+# (hat nicht funktioniert) train$Model_Product <- stringr::str_replace_all(train$Model_Product, pattern = "Product", replacement = "1")
+# (hat nicht funktioniert) train$Model_Product <- stringr::str_replace_all(train$Model_Product, pattern = "Service", replacement = "0")
+# (hat nicht funktioniert) train$Model_Product <- stringr::str_replace_all(train$Model_Product, pattern = "Both", replacement = "0")
+
+# replace character data by numerical data. here: column Model_Service - Service replaced by 1, both and Product replaced by 0
+# (hat nicht funktioniert) train$Model_Service <- stringr::str_replace_all(train$Model_Service, pattern = "Service", replacement = "1")
+# (hat nicht funktioniert) train$Model_Service <- stringr::str_replace_all(train$Model_Service, pattern = "Product", replacement = "0")
+# (hat nicht funktioniert) train$Model_Service <- stringr::str_replace_all(train$Model_Service, pattern = "Both", replacement = "0")
+
+# replace character data by numerical data. here: column Company_both_product_and_service - Both replaced by 1, Product and Service replaced by 0
+# (hat nicht funktioniert) train$Company_both_product_and_service <- stringr::str_replace_all(train$Company_both_product_and_service, pattern = "Both", replacement = "1")
+# (hat nicht funktioniert) train$Company_both_product_and_service <- stringr::str_replace_all(train$Company_both_product_and_service, pattern = "Product", replacement = "0")
+# (hat nicht funktioniert) train$Company_both_product_and_service <- stringr::str_replace_all(train$Company_both_product_and_service, pattern = "Service", replacement = "0")
+
+```
+```{r pressure, echo=FALSE}
+# partitioning of test and train set for own evaluation of models
+# separating out 0 and 1 level
+train_0 <- train[train$Dependent==0,]
+train_1 <- train[train$Dependent==1,]
+train_0$Category<-NULL
+train_1$Category<-NULL
+
+# randomly choosing test and train set for each level
+library(caTools)
+sample_0 = sample.split(train_0, SplitRatio = .9)
+train_0_new = subset(train_0, sample_0 == TRUE)
+test_0_new = subset(train_0, sample_0 == FALSE)
+sample_1 = sample.split(train_1, SplitRatio = .9)
+train_1_new = subset(train_1, sample_1 == TRUE)
+test_1_new = subset(train_1, sample_1 == FALSE)
+
+# final new train and test set
+train_new<- rbind(train_1_new,train_0_new)
+test_new<- rbind(test_1_new,test_0_new)
+
+```
+
+
+```{r pressure, echo=FALSE}
+# install developer tool and then woe package from gitub
+# refer http://www.r-bloggers.com/r-credit-scoring-woe-information-value-in-woe-package/
+install.packages("devtools")
+library(devtools)
+install_github("tomasgreif/woe")
+library(woe)
+# only dependent and independent variable of training set
+# should be there in data frame
+train_new$CAX_ID<-NULL
+# calculation of information value
+IV<-iv.mult(train_new,y="Dependent",TRUE)
+
+# Ignore warnig message for variable which have 0 WOE
+# (anyway you will remove these before modeling)
+
+
+# idiotensicher: Achtung! Test von Datenset kopievontrain!
+kopievontrain$CAX_ID<-NULL
+IV<-iv.mult(kopievontrain,y="Dependent",TRUE)
+
+# selecting variables with 0.1<IV<0.5
+var<-IV[which(IV$InformationValue>0.1),]
+var1<-var[which(var$InformationValue<0.5),]
+final_var<-var1$Variable
+x_train<-kopievontrain[final_var]
+Dependent<-train$Dependent
+train_final<-cbind(Dependent,x_train)
+
+# fitting stepwise binary logistic regression with logit link function
+mod<-step(glm(Dependent~., family = binomial(link=logit),data = train_final))
+# model summary
+summary(mod)
+```
+```{r pressure, echo=FALSE}
+# final logistic regression model
+model<-glm(formula = Dependent ~ Model_B2C +
+Company_analytics_score + Company_competitor_count + Company_1st_investment_time + Company_big_data,
+family = binomial(link = logit), data = train_final)
+# model summary
+summary(model)
+```
+
+```{r pressure, echo=FALSE}
+# odds ratios and 95% CI
+exp(cbind(OR = coef(model), confint(model)))
+
+```
+
+```{r pressure, echo=FALSE}
+
+# model fit (Hosmer and Lemeshow goodness of fit (GOF) test). use the hosmer test to see if there is evidence of poor fit
+install.packages("ResourceSelection")
+library(ResourceSelection)
+hoslem.test(train_final$Dependent,model$fitted.values, g=10)
+
+# p-value = 0.9388 and is well above 0.05. This indicates that there is no evidence of poor fit. In other words, model is fitting the data well.
+
+# Prediction on test set
+pred_prob<-predict (model, newdata=test_new, type="response")
+# model accuracy measures
+install.packages("ROCR")
+library (ROCR)
+pred <- prediction (pred_prob, test_new$Dependent)
+# Area under the curve
+performance (pred, 'auc')
+
+# creating ROC curve
+roc <- performance (pred,"tpr","fpr")
+plot (roc)
+
+# create data frame of values
+perf <-as.data.frame(cbind(roc@alpha.values[[1]], roc@x.values[[1]], roc@y.values[[1]]))
+colnames(perf) <-c("Probability","FPR","TPR")
+# removing infinity value from data frame
+perf <-perf[-1,]
+# reshape the data frame
+install.packages("reshape")
+library(reshape)
+perf2<- melt(perf, measure.vars = c("FPR", "TPR"))
+# plotting FPR, TPR on y axis and cut-off probability on x axis
+library(ggplot2)
+ggplot(perf2, aes(Probability, value, colour = variable)) +
+geom_line()+ theme_bw()
+
+# model accuracy - Confusion Matrix
+install.packages("SDMTools")
+library(SDMTools)
+confusion.matrix (test_new$Dependent, pred_prob, threshold = 0.42)
+
+# Prediction on test set of CAX
+pred_CAX<- predict(model, newdata=test, type="response")
+submit_CAX<- cbind(test$CAX_ID,pred_CAX)
+colnames(submit_CAX)<- c("CAX_ID", "Dependent")
+write.csv(submit_CAX,"Predictions.csv",row.names=F)
+
